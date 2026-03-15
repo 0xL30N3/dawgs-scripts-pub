@@ -1,0 +1,11 @@
+minzero/.env
+minzero/deploy.log
+minzero/hostfile
+minzero/ips
+minzero/pass
+testing/.vagrant/
+./systems/web/*
+./systems/mail/*
+*.tar
+*.*.swp
+/*/*.*.swp
