@@ -1,5 +1,4 @@
 #!/bin/sh
-# UNTESTED
 
 if [ "$(id -u)" -ne 0 ]; then
   printf "This script requires root privileges. Exiting\n"
@@ -20,14 +19,14 @@ printf "==> Deploying auditd\n"
 printf "====> Installing auditd\n"
 if command -v auditd > /dev/null; then
    printf "Already installed\n"
-fi
-
-if command -v dnf > /dev/null; then
-   dnf install audit -y
-elif command -v apt > /dev/null; then
-   apt install auditd -y
-elif command -v apk > /dev/null; then
-   apk add audit
+else
+   if command -v dnf &> /dev/null; then
+      dnf install audit -y
+   elif command -v apt &> /dev/null; then
+      apt install auditd -y
+   elif command -v apk &> /dev/null; then
+      apk add audit
+   fi
 fi
 
 printf "====> Applying rules\n"
@@ -36,11 +35,10 @@ chmod 0600 /etc/audit/rules.d/standard.rules
 chattr +i /etc/audit/rules.d/standard.rules
 
 printf "====> Restarting service\n"
-if command -v systemctl &> /dev/null; then
-   systemctl kill auditd
-   systemctl restart auditd
-elif command -v apk &> /dev/null; then
-   rc-service auditd restart
+if command -v augenrules >/dev/null 2>&1; then
+    augenrules --load
+else
+    service auditd restart
 fi
 
 printf "==> Deploying watchdawg\n"
@@ -51,7 +49,7 @@ mv /tmp/watchdawg-sources /etc/kernel/sources
 nohup /etc/kernel/watchdawg /etc/kerner/init-state /etc/kernel/sources > /etc/kernel/out 2>&1 &
 
 printf "==> Deploying busybox\n"
-curl -k -L -O https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
+#curl -k -L -O https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
 chmod +x busybox
 mkdir /opt/busybox
 cp busybox /opt/busybox/
@@ -71,18 +69,21 @@ chattr +i /etc/ssh/sshd_config
 
 printf "[DONE] Log out if using ssh and log back in to activate busybox\n"
 
-#if [ "$DEPLOY_SPLUNK" = "yes" ]; then
-#   printf "==> Deploying splunk\n"
-#   addgroup splunk
-#   groupadd splunk
-#   adduser splunk # busybox + gnu
-#   usermod -aG splunk splunk
-#   addgroup splunk splunk
+if [ "$DEPLOY_SPLUNK" = "yes" ]; then
+   printf "==> Deploying splunk\n"
+   addgroup splunk
+   groupadd splunk
+   adduser splunk # busybox + gnu
+   usermod -aG splunk splunk
+   addgroup splunk splunk
 
    # ADD THE REST
-#fi
+fi
 
-#if [ "$DEPLOY_TIMESYNCING" = "yes"]; then
-#   printf "==> Deploying PTP time syncing\n"
+if [ "$DEPLOY_TIMESYNCING" = "yes" ]; then
+   printf "==> Deploying PTP time syncing\n"
    # ADD THE REST
-#fi
+fi
+
+printf "Finished activation script\n"
+printf "Check out the baselining scripts standard.sh and specific.sh\n"
